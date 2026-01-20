@@ -15,6 +15,13 @@ import (
 )
 
 func loadModel() *search.Vectorizer {
+	// Set the library path before using the library
+	libPath := os.Getenv("LLAMA_GO_LIB_PATH")
+	if libPath == "" {
+		libPath = "../../dist/libllama_go.so" // Default path for eval
+	}
+	search.SetLibraryPath(libPath)
+
 	model := "../../dist/MiniLM-L6-v2.Q8_0.gguf"
 	fmt.Printf("Loading model: %s\n", model)
 
