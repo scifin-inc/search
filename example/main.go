@@ -12,6 +12,14 @@ import (
 )
 
 func main() {
+	// Set the library path before using the library
+	// You can set this via environment variable or hardcode it
+	libPath := os.Getenv("LLAMA_GO_LIB_PATH")
+	if libPath == "" {
+		libPath = "../dist/libllama_go.so" // Default path for example
+	}
+	search.SetLibraryPath(libPath)
+
 	m, err := search.NewVectorizer("../dist/MiniLM-L6-v2.Q8_0.gguf", 0)
 	if err != nil {
 		panic(err)

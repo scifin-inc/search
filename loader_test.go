@@ -4,30 +4,43 @@
 package search
 
 import (
+	"os"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLibDirs_Windows(t *testing.T) {
-	ext, libs := findLibDirs("windows")
-	assert.Equal(t, ".dll", ext)
-	assert.NotEmpty(t, libs)
+// TestSetLibraryPath validates that SetLibraryPath works correctly
+func TestSetLibraryPath(t *testing.T) {
+	// Get library path from environment or use default
+	libPath := os.Getenv("LLAMA_GO_LIB_PATH")
+	if libPath == "" {
+		// Try common locations based on OS
+		if runtime.GOOS == "windows" {
+			libPath = "llama_go.dll"
+		} else if runtime.GOOS == "darwin" {
+			libPath = "libllama_go.dylib"
+		} else {
+			libPath = "libllama_go.so"
+		}
+	}
+
+	// Test: SetLibraryPath should work (idempotent - can be called multiple times)
+	// This validates that SetLibraryPath doesn't panic and can be called safely
+	assert.NotPanics(t, func() {
+		SetLibraryPath(libPath)
+		SetLibraryPath(libPath) // Call again to test idempotency
+	}, "SetLibraryPath should not panic and should be idempotent")
 }
 
-func TestLibDirs_Darwin(t *testing.T) {
-	ext, libs := findLibDirs("darwin")
-	assert.Equal(t, ".dylib", ext)
-	assert.NotEmpty(t, libs)
-}
+// TestSetLibraryPathWithInvalidPath validates error handling for invalid paths
+func TestSetLibraryPathWithInvalidPath(t *testing.T) {
+	// Set an invalid library path
+	SetLibraryPath("/nonexistent/path/libllama_go.so")
 
-func TestLibDirs_Linux(t *testing.T) {
-	ext, libs := findLibDirs("linux")
-	assert.Equal(t, ".so", ext)
-	assert.NotEmpty(t, libs)
-}
-
-func TestFindLibrary_Err(t *testing.T) {
-	_, err := findLibrary("nonexistent", "linux")
-	assert.Error(t, err)
+	// Try to create a vectorizer - should fail with file not found error
+	_, err := NewVectorizer("test.gguf", 0)
+	assert.Error(t, err, "NewVectorizer should fail with invalid library path")
+	assert.Contains(t, err.Error(), "library file not found", "Error should mention file not found")
 }
